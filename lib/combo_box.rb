@@ -6,5 +6,6 @@ module ComboBox
   extend ActiveSupport::Autoload
   
   autoload :Helpers
+  autoload :Generator
   autoload :ActionController
 end

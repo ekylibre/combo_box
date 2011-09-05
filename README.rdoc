@@ -5,7 +5,7 @@ Adds helpers for Rails views and controller in order to manage 'dynamic select'.
 == Rails 3.0
 
 ComboBox requires the gem +jquery-rails+, so if you don't already use it:
-  rails generate jquery:install
+  rails generate jquery:install --ui
 
 Then install +combo_box+ in your app like +jquery-rails+:
   rails generate combo_box:install
@@ -30,7 +30,7 @@ Classic usage in resource forms:
 
   # app/controllers/orders_controller.rb
   class OrdersController < ApplicationController
-    search_for_combo_box :client
+    search_for :client
   end
 
   # app/views/orders/_form.html.haml
