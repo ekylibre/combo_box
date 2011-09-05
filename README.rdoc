@@ -1,8 +1,55 @@
-= combo_box
+= ComboBox
 
-Description goes here.
+Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections.
 
-== Contributing to combo_box
+== Rails 3.0
+
+ComboBox requires the gem +jquery-rails+, so if you don't already use it:
+  rails generate jquery:install
+
+Then install +combo_box+ in your app like +jquery-rails+:
+  rails generate combo_box:install
+
+Then the javascript and/or stylesheet files must be included in the application layout:
+  <%= javascript_include_tag('combo_box') -%>
+  <%= stylesheet_link_tag('combo_box') -%>
+
+== Rails 3.1
+
+Nothing to install. With the asset pipeline, there is no need to run generators or copy files. So for stylesheets:
+  # app/assets/stylesheets/application.css
+  *= require combo_box
+
+And for javascripts:
+  # app/assets/javascripts/application.js
+  *= require combo_box
+
+== Usage
+
+Classic usage in resource forms:
+
+  # app/controllers/orders_controller.rb
+  class OrdersController < ApplicationController
+    search_for_combo_box :client
+  end
+
+  # app/views/orders/_form.html.haml
+  combo_box :order, :client
+
+Usage in non-resource forms with personalized controller method:
+
+  # app/controllers/orders_controller.rb
+  class OrdersController < ApplicationController
+    def search_for_orders
+      orders = Order.find_all_by_number(params[:term])
+      render orders.collect{|r| {:label=>r.number, :id=>r.id}}.to_json
+    end
+  end
+
+  # app/views/orders/search.html.haml
+  combo_box_tag "search", :search_for_orders
+
+== Contributing to ComboBox
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it

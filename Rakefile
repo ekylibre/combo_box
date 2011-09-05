@@ -21,7 +21,7 @@ Jeweler::Tasks.new do |gem|
   gem.description = "Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections."
   gem.email = "brice.texier@ekylibre.org"
   gem.authors = ["Brice Texier"]
-  gem.files = `git ls-files lib`.split(/\n/)+['Gemfile', 'MIT-LICENSE', 'README.rdoc', 'VERSION']
+  gem.files = `git ls-files lib`.split(/\n/)+['Gemfile', 'LICENSE.txt', 'README.rdoc', 'VERSION']
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
