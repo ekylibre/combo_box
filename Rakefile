@@ -17,10 +17,11 @@ Jeweler::Tasks.new do |gem|
   gem.name = "combo_box"
   gem.homepage = "http://github.com/burisu/combo_box"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = "Adds the combo_box control in Rails 3 based on jQuery UI"
+  gem.description = "Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections."
   gem.email = "brice.texier@ekylibre.org"
   gem.authors = ["Brice Texier"]
+  gem.files = `git ls-files lib`.split(/\n/)+['Gemfile', 'MIT-LICENSE', 'README.rdoc', 'VERSION']
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
