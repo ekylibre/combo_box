@@ -3,8 +3,17 @@ module ComboBox
 
     class Base
 
-      def self.generate_controller_code(controller_name, options={})
-        model = (options[:model]||controller_name).to_s.classify.constantize
+      attr_accessor :controller, :options
+
+      def initialize(controller, options={})
+        @controller = controller
+        @options = options
+      end
+
+
+
+      def controller_code())
+        model = (options[:model]||controller.controller_name).to_s.classify.constantize
 
 
         # def mono_choice_search_code(field)
@@ -102,7 +111,7 @@ module ComboBox
       end
 
 
-      def self.generate_controller_action(name, options={})
+      def controller_action(name, options={})
         code  = "def #{action}\n"
         code << Generator::Base.generate_controller_code(options).strip.gsub(/^/, '  ')+"\n"
         code << "end\n"
