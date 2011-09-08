@@ -3,16 +3,18 @@ module ComboBox
 
     class Base
 
-      attr_accessor :controller, :options
+      attr_accessor :action_name, :controller, :options
 
-      def initialize(controller, options={})
+      def initialize(controller, action_name, options={})
         @controller = controller
+        @action_name = action_name.to_sym
         @options = options
+        @columns = []
       end
 
 
 
-      def controller_code())
+      def controller_code()
         model = (options[:model]||controller.controller_name).to_s.classify.constantize
 
 
@@ -114,6 +116,14 @@ module ComboBox
       def controller_action(name, options={})
         code  = "def #{action}\n"
         code << Generator::Base.generate_controller_code(options).strip.gsub(/^/, '  ')+"\n"
+        code << "end\n"
+        return code
+      end
+
+
+      def view_code()
+        code  = "def search_columns_for_#{@action_name}_in_#{@controller.controller_name}\n"
+        code << "  return #{@columns.inspect}\n"
         code << "end\n"
         return code
       end
