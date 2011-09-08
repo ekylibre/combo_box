@@ -1,6 +1,7 @@
 # encoding: utf-8
 module ComboBox
-  class Railtie < Rails::Railtie # :nodoc: all
+  # @private
+  class Railtie < Rails::Railtie
     initializer 'formize.initialize' do
       ActiveSupport.on_load(:action_view) do
         include ComboBox::Helpers::FormTagHelper
