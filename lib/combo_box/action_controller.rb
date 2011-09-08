@@ -11,32 +11,37 @@ module ComboBox
       # Generates a default action which is the resource for a combo_box.
       # It generates an helper which takes in account selected columns for displaying.
       # 
-      # @param [Hash] options Options to build controller action
-      #
-      # @option options [Array] :columns The columns which are used for search and display
-      #   All the content columns are used by default.
-      # @option options [Array,Hash] :conditions Default conditions used in the search query
-      # @option options [String, Hash, Array] :joins To make a join like in `find`
-      # @option options [Integer] :limit (80) Maximum count of items in results
-      # @option options [String] :partial Specify a partial for HTML autocompleter
-      # @option options [String] :filter ('%X%') Filter format used to build search query. 
-      #   Specific filters can be specified for each column. 
+      # @macro [new] options
+      #   @param [Hash] options Options to build controller action
+      #   @option options [Array] :columns The columns which are used for search and display
+      #     All the content columns are used by default.
+      #     A column can be a Symbol/String with its name or Hash with keys (+:name+,
+      #     +:filter+, +:interpolation_key+)
+      #   @option options [Array,Hash] :conditions Default conditions used in the search query
+      #   @option options [String, Hash, Array] :joins To make a join like in +find+
+      #   @option options [Integer] :limit (80) Maximum count of items in results
+      #   @option options [String] :partial Specify a partial for HTML autocompleter
+      #   @option options [String] :filter ('%X%') Filter format used to build search query. 
+      #     Specific filters can be specified for each column. 
       #
       # @overload search_for(name, model, options={})
-      #   Defines a controller method ̀search_for_NAME` which searches for records
-      #   of the class `MODEL`.
+      #   Defines a controller method +search_for_NAME+ which searches for records
+      #   of the class +MODEL+.
       #   @param [Symbol] name Name of the datasource
       #   @param [String, Symbol] name Name of the model to use for searching
+      #   @macro options
       #
       # @overload search_for(name, options={})
-      #   Defines a controller method ̀search_for_NAME` which searches for records
-      #   of the class `NAME`.
+      #   Defines a controller method +search_for_NAME+ which searches for records
+      #   of the class +NAME+.
       #   @param [Symbol] name
       #     Name of the datasource. This name is used to find the model name
+      #   @macro options
       #
       # @overload search_for(options={})
-      #   Defines a controller method ̀search_for` which searches for records corresponding to the
-      #   resource controller name. `OrdersController#search_for` searches for orders.
+      #   Defines a controller method +search_for+ which searches for records corresponding to the
+      #   resource controller name. +OrdersController#search_for+ searches for orders.
+      #   @macro options
       #
       # @example Search clients with Person model
       #   # app/controller/orders_controller.rb
@@ -62,8 +67,11 @@ module ComboBox
       #     ...
       #   end
       def search_for(*args)
-        action_name = "#{__method__}_#{belongs_to}"
-        generator = Generator::Base.new(self, action_name, options)
+        options = args.delete_at(-1) if args[-1].is_a? Hash
+        name, model = args[0], args[1]
+        action_name = "#{__method__}#{' '+name.to_s if name}"
+        model ||= name.to_s.classify
+        generator = Generator::Base.new(self, action_name, model, options)
         class_eval(generator.controller_action, "#{__FILE__}:#{__LINE__}")
         ActionView::Base.send(:class_eval, generator.view_code, "#{__FILE__}:#{__LINE__}")
       end

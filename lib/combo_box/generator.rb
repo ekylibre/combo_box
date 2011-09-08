@@ -1,65 +1,65 @@
 module ComboBox
   module Generator
 
+    Column = Struct.new('Column', :name, :filter, :interpolation_key)
+
     class Base
 
       attr_accessor :action_name, :controller, :options
 
-      def initialize(controller, action_name, options={})
+      def initialize(controller, action_name, model, options={})
         @controller = controller
         @action_name = action_name.to_sym
         @options = options
-        @columns = []
+        @model = model
+        columns = @options.delete(:columns)
+        columns ||= model.content_columns.collect{|x| x.name.to_sym}
+        columns = [columns] unless column.is_a? Array
+        # Normalize columns
+        count = 0
+        @columns = columns.collect do |c| 
+          c = c.to_s.split(/\:/) if [String, Symbol].include? c.class
+          c = if c.is_a? Hash
+                Column.new(c[:name], c[:filter], c[:interpolation_key])
+              elsif c.is_a? Array
+                Column.new(c[0], c[1], c[2])
+              else
+                raise Exception.new("Bad column: #{c.inspect}")
+              end
+          c.filter ||= @options[:filter]||'%X%'
+          c.interpolation_key ||= c.name.gsub(/\W/, '_')
+          c
+        end
       end
 
 
 
       def controller_code()
-        model = (options[:model]||controller.controller_name).to_s.classify.constantize
+        foreign_record  = @model.name.underscore
+        foreign_records = @model.name.pluralize
+        foreign_records = "many_#{foreign_records}" if foreign_record == foreign_records
 
-
-        # def mono_choice_search_code(field)
-        source_model = field_datasource_class_name(field).constantize
-        # reflection = source_model.reflections[field.choices]
-        # if reflection.nil?
-        #   raise Exception.new("#{source_model.name} must have a reflection :#{field.choices}.")
-        # end
-        model = field.reflection.class_name.constantize #reflection.class_name.constantize
-        foreign_record  = model.name.underscore
-        foreign_records = "#{source_model.name.underscore}_#{field.choices}"
-        options = field.options
-        attributes = field.search_attributes
-        attributes = [attributes] unless attributes.is_a? Array
-        attributes_hash = {}
-        attributes.each_index do |i|
-          attribute = attributes[i]
-          attributes[i] = [
-                           (attribute.to_s.match(/\./) ? attribute.to_s : model.table_name+'.'+attribute.to_s.split(/\:/)[0]),
-                           (attribute.to_s.match(/\:/) ? attribute.to_s.split(/\:/)[1] : (options[:filter]||'%X%')),
-                           '_a'+i.to_s]
-          attributes_hash[attributes[i][2]] = attributes[i][0]
-        end
         query = []
         parameters = ''
-        if options[:conditions].is_a? Hash
-          options[:conditions].each do |key, value| 
-            query << (key.is_a?(Symbol) ? model.table_name+"."+key.to_s : key.to_s)+'=?'
+        if @options[:conditions].is_a? Hash
+          @options[:conditions].each do |key, value| 
+            query << (key.is_a?(Symbol) ? @model.table_name+"."+key.to_s : key.to_s)+'=?'
             parameters += ', ' + sanitize_conditions(value)
           end
-        elsif options[:conditions].is_a? Array
-          conditions = options[:conditions]
-          case conditions[0]
-          when String  # SQL
-            #               query << '["'+conditions[0].to_s+'"'
+        elsif @options[:conditions].is_a? Array
+          conditions = @options[:conditions]
+          if conditions[0].is_a?(String)  # SQL
             query << conditions[0].to_s
             parameters += ', '+conditions[1..-1].collect{|p| sanitize_conditions(p)}.join(', ') if conditions.size>1
-            #                query << ')'
           else
             raise Exception.new("First element of an Array can only be String or Symbol.")
           end
         end
         
-        select = (model.table_name+".id AS id, "+attributes_hash.collect{|k,v| v+" AS "+k}.join(", ")).inspect
+        # select = "#{@model.table_name}.id AS id"
+        # for c in @columns
+        #   select << ", #{c.full_name} AS #{c.short_name}"
+        # end
         
         code  = ""
         code << "conditions = [#{query.join(' AND ').inspect+parameters}]\n"
@@ -70,7 +70,6 @@ module ComboBox
         code << "  words.each_index do |index|\n"
         code << "    word = words[index].to_s\n"
         code << "    conditions[0] << ') AND (' if index > 0\n"
-
         if ActiveRecord::Base.connection.adapter_name == "MySQL"
           code << "    conditions[0] << "+attributes.collect{|key| "LOWER(CAST(#{key[0]} AS CHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
         else
@@ -82,17 +81,18 @@ module ComboBox
         code << "  conditions[0] << ')'\n"
         code << "end\n"
 
-        # joins = options[:joins] ? ", :joins=>"+options[:joins].inspect : ""
+        # joins = @options[:joins] ? ", :joins=>"+@options[:joins].inspect : ""
         # order = ", :order=>"+attributes.collect{|key| "#{key[0]} ASC"}.join(', ').inspect
-        # limit = ", :limit=>"+(options[:limit]||80).to_s
-        joins = options[:joins] ? ".joins(#{options[:joins].inspect})" : ""
-        order = ".order("+attributes.collect{|key| "#{key[0]} ASC"}.join(', ').inspect+")"
-        limit = ".limit(#{options[:limit]||80})"
+        # limit = ", :limit=>"+(@options[:limit]||80).to_s
+        joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).include(#{@options[:joins].inspect})" : ""
+        order = ".order("+@columns.collect{|c| "#{c.full_name} ASC"}.join(', ').inspect+")"
+        limit = ".limit(#{@options[:limit]||80})"
 
-        partial = options[:partial]
+        partial = @options[:partial]
 
-        html  = "<ul><%for #{foreign_record} in #{foreign_records}-%><li id='<%=#{foreign_record}.id-%>'>" 
-        html << "<%content=#{foreign_record}.#{field.item_label}-%>"
+        html  = "<ul><% for #{foreign_record} in #{foreign_records} -%><li id='<%=#{foreign_record}.id-%>'>" 
+        html << "<% content = ::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{foreign_record}.#{c.name}"}+")-%>"
+        # html << "<%content="+#{foreign_record}.#{field.item_label}+" -%>"
         # html << "<%content="+attributes.collect{|key| "#{foreign_record}['#{key[2]}'].to_s"}.join('+", "+')+" -%>"
         if partial
           html << "<%=render(:partial=>#{partial.inspect}, :locals =>{:#{foreign_record}=>#{foreign_record}, :content=>content, :search=>search})-%>"

@@ -1,5 +1,6 @@
 # encoding: utf-8
 module ComboBox
-  class Engine < ::Rails::Engine # @private
+  # Required for assets pipeline
+  class Engine < ::Rails::Engine
   end
 end
