@@ -11,24 +11,7 @@ module ComboBox
       # Generates a default action which is the resource for a combo_box.
       # It generates an helper which takes in account selected columns for displaying.
       # 
-      # @overload search_for(name, model, options={})
-      #   Defines a controller method ̀search_for_<name>` which searches for records
-      #   of the class `<model>`.
-      #   @param [Symbol] name Name of the datasource
-      #   @param [String, Symbol] name Name of the model to use for searching
-      #   @param [Hash] options Options to build controller action
-      #
-      # @overload search_for(name, options={})
-      #   Defines a controller method ̀search_for_<name>` which searches for records
-      #   of the class `<name>`.
-      #   @param [Symbol] name
-      #     Name of the datasource. This name is used to find the model name
-      #   @param [Hash] options Options to build controller action
-      #
-      # @overload search_for(options={})
-      #   Defines a controller method ̀search_for` which searches for records corresponding to the
-      #   resource controller name. `OrdersController#search_for` searches for orders.
-      #   @param [Hash] options Options to build controller action
+      # @param [Hash] options Options to build controller action
       #
       # @option options [Array] :columns The columns which are used for search and display
       #   All the content columns are used by default.
@@ -38,6 +21,22 @@ module ComboBox
       # @option options [String] :partial Specify a partial for HTML autocompleter
       # @option options [String] :filter ('%X%') Filter format used to build search query. 
       #   Specific filters can be specified for each column. 
+      #
+      # @overload search_for(name, model, options={})
+      #   Defines a controller method ̀search_for_NAME` which searches for records
+      #   of the class `MODEL`.
+      #   @param [Symbol] name Name of the datasource
+      #   @param [String, Symbol] name Name of the model to use for searching
+      #
+      # @overload search_for(name, options={})
+      #   Defines a controller method ̀search_for_NAME` which searches for records
+      #   of the class `NAME`.
+      #   @param [Symbol] name
+      #     Name of the datasource. This name is used to find the model name
+      #
+      # @overload search_for(options={})
+      #   Defines a controller method ̀search_for` which searches for records corresponding to the
+      #   resource controller name. `OrdersController#search_for` searches for orders.
       #
       # @example Search clients with Person model
       #   # app/controller/orders_controller.rb
