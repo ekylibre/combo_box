@@ -33,24 +33,17 @@ module ComboBox
       # @return [String] HTML code of the tags
       def combo_box(object_name, method, choices = nil, options = {}, html_options = {})
         object = instance_variable_get("@#{object_name}")
-        label = []
-        if choices.is_a? Symbol
-          columns = object.class.columns.collect{|c| c.name.to_s}
-          label = options.delete(:label)||columns
-          label = [label] unless label.is_a? Array
-          label.each_index do |i| 
-            if columns.include?(label[i])
-              label[i] = label[i].to_s            
-            else
-              raise ArgumentError.new("Option :label must only contains columns of the model like: #{columns.inspect} and not #{label.inspect}")
-            end
-          end
-        else
-          label = send("columns_for_#{controller_name}_#{choices}_combo_box")
+        if choices.nil?
+          choices = {:action=>"search_for_#{method}"}
+        elsif choices.is_a?(Symbol)
+          choices = {:action=>"search_for_#{choices}"}
+        elsif choices.is_a?(String)
+          action = choices.split(/\#+/)
+          choices = {:action=>action[1], :controller=>action[0]}
         end
-        associated = object.send(method)
+        choices[:controller] ||= controller.controller_name
         html  = ""
-        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>"#{object_name}_#{method}", :value=>(associated ? label.collect{|c| associated[c]} : nil), :size=>html_options.delete(:size)||32)
+        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>"#{object_name}_#{method}", :value=>send("item_label_for_#{choices[:action]}_in_#{choices[:controller]}", object.send(method)), :size=>html_options.delete(:size)||32)
         html << hidden_field(object_name, method, html_options)
         return html.html_safe
       end
@@ -75,8 +68,9 @@ module ComboBox
           choices = {:action=>"search_for_#{choices}"}
         elsif choices.is_a?(String)
           action = choices.split(/\#+/)
-          choices = {:action=>"search_for_#{action[1]}", :controller=>action[0]}
+          choices = {:action=>action[1], :controller=>action[0]}
         end
+        choices[:controller] ||= controller.controller_name
         html  = ""
         html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>name, :size=>html_options.delete(:size)||32, :value=>options.delete(:label))
         html << hidden_field_tag(name, html_options.delete(:value), html_options)

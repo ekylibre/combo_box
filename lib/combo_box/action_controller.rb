@@ -69,9 +69,11 @@ module ComboBox
       def search_for(*args)
         options = args.delete_at(-1) if args[-1].is_a? Hash
         name, model = args[0], args[1]
-        action_name = "#{__method__}#{' '+name.to_s if name}"
+        action_name = "#{__method__}#{'_'+name.to_s if name}"
         model = model || name || controller_name
-        model = model.to_s.classify.constantize if [String, Symbol].include?(model.class)
+        if [String, Symbol].include?(model.class)
+          model = model.to_s.classify.constantize             
+        end
         generator = Generator::Base.new(self, action_name, model, options)
         class_eval(generator.controller_action, "#{__FILE__}:#{__LINE__}")
         ActionView::Base.send(:class_eval, generator.view_code, "#{__FILE__}:#{__LINE__}")
