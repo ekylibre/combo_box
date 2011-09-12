@@ -1,7 +1,7 @@
 module ComboBox
   module Generator
 
-    Column = Struct.new('Column', :name, :filter, :interpolation_key)
+    Column = Struct.new('Column', :name, :filter, :interpolation_key, :full_name)
 
     class Base
 
@@ -10,19 +10,18 @@ module ComboBox
       def initialize(controller, action_name, model, options={})
         @controller = controller
         @action_name = action_name.to_sym
-        @options = options
+        @options = (options.is_a?(Hash) ? options : {})
         @model = model
         columns = @options.delete(:columns)
         columns ||= model.content_columns.collect{|x| x.name.to_sym}
-        columns = [columns] unless column.is_a? Array
+        columns = [columns] unless columns.is_a? Array
         # Normalize columns
-        count = 0
         @columns = columns.collect do |c| 
           c = c.to_s.split(/\:/) if [String, Symbol].include? c.class
           c = if c.is_a? Hash
-                Column.new(c[:name], c[:filter], c[:interpolation_key])
+                Column.new(c[:name], c[:filter], c[:interpolation_key], (c[:name].to_s.match(/\./) ? c[:name].to_s : "#{model.table_name}.#{c[:name]}"))
               elsif c.is_a? Array
-                Column.new(c[0], c[1], c[2])
+                Column.new(c[0], c[1], c[2], (c[0].to_s.match(/\./) ? c[0].to_s : "#{model.table_name}.#{c[0]}"))
               else
                 raise Exception.new("Bad column: #{c.inspect}")
               end
@@ -36,7 +35,7 @@ module ComboBox
 
       def controller_code()
         foreign_record  = @model.name.underscore
-        foreign_records = @model.name.pluralize
+        foreign_records = foreign_record.pluralize
         foreign_records = "many_#{foreign_records}" if foreign_record == foreign_records
 
         query = []
@@ -62,8 +61,7 @@ module ComboBox
         # end
         
         code  = ""
-        code << "conditions = [#{query.join(' AND ').inspect+parameters}]\n"
-        code << "search = params[:term]\n"
+        code << "search, conditions = params[:term], [#{query.join(' AND ').inspect+parameters}]\n"
         code << "words = search.to_s.mb_chars.downcase.strip.normalize.split(/[\\s\\,]+/)\n"
         code << "if words.size > 0\n"
         code << "  conditions[0] << '#{' AND ' if query.size>0}('\n"
@@ -71,18 +69,18 @@ module ComboBox
         code << "    word = words[index].to_s\n"
         code << "    conditions[0] << ') AND (' if index > 0\n"
         if ActiveRecord::Base.connection.adapter_name == "MySQL"
-          code << "    conditions[0] << "+attributes.collect{|key| "LOWER(CAST(#{key[0]} AS CHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
+          code << "    conditions[0] << "+@columns.collect{|key| "LOWER(CAST(#{key[0]} AS CHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
         else
-          code << "    conditions[0] << "+attributes.collect{|key| "LOWER(CAST(#{key[0]} AS VARCHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
+          code << "    conditions[0] << "+@columns.collect{|key| "LOWER(CAST(#{key[0]} AS VARCHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
         end
 
-        code << "    conditions += ["+attributes.collect{|key| key[1].inspect.gsub('X', '"+word+"').gsub(/(^\"\"\+|\+\"\"\+|\+\"\")/, '')}.join(", ")+"]\n"
+        code << "    conditions += ["+@columns.collect{|key| key[1].inspect.gsub('X', '"+word+"').gsub(/(^\"\"\+|\+\"\"\+|\+\"\")/, '')}.join(", ")+"]\n"
         code << "  end\n"
         code << "  conditions[0] << ')'\n"
         code << "end\n"
 
         # joins = @options[:joins] ? ", :joins=>"+@options[:joins].inspect : ""
-        # order = ", :order=>"+attributes.collect{|key| "#{key[0]} ASC"}.join(', ').inspect
+        # order = ", :order=>"+@columns.collect{|key| "#{key[0]} ASC"}.join(', ').inspect
         # limit = ", :limit=>"+(@options[:limit]||80).to_s
         joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).include(#{@options[:joins].inspect})" : ""
         order = ".order("+@columns.collect{|c| "#{c.full_name} ASC"}.join(', ').inspect+")"
@@ -91,9 +89,9 @@ module ComboBox
         partial = @options[:partial]
 
         html  = "<ul><% for #{foreign_record} in #{foreign_records} -%><li id='<%=#{foreign_record}.id-%>'>" 
-        html << "<% content = ::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{foreign_record}.#{c.name}"}+")-%>"
+        html << "<% content = item_label_for_#{@action_name}_in_#{@controller.controller_name}-%>"
         # html << "<%content="+#{foreign_record}.#{field.item_label}+" -%>"
-        # html << "<%content="+attributes.collect{|key| "#{foreign_record}['#{key[2]}'].to_s"}.join('+", "+')+" -%>"
+        # html << "<%content="+@columns.collect{|key| "#{foreign_record}['#{key[2]}'].to_s"}.join('+", "+')+" -%>"
         if partial
           html << "<%=render(:partial=>#{partial.inspect}, :locals =>{:#{foreign_record}=>#{foreign_record}, :content=>content, :search=>search})-%>"
         else
@@ -101,32 +99,41 @@ module ComboBox
         end
         html << '</li><%end-%></ul>'
 
-        # code << "#{foreign_records} = #{field_datasource(field)}.find(:all, :conditions=>conditions"+joins+order+limit+")\n"
-        code << "#{foreign_records} = #{field_datasource(field).gsub(/\.all$/, '')}.where(conditions)"+joins+order+limit+"\n"
+        code << "#{foreign_records} = #{@model.name}.where(conditions)"+joins+order+limit+"\n"
         # Render HTML is old Style
         code << "respond_to do |format|\n"
         code << "  format.html { render :inline=>#{html.inspect}, :locals=>{:#{foreign_records}=>#{foreign_records}, :search=>search} }\n"
-        code << "  format.json { render :json=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{foreign_record}.#{field.item_label}, :id=>#{foreign_record}.id}}.to_json }\n"
-        code << "  format.xml { render :xml=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{foreign_record}.#{field.item_label}, :id=>#{foreign_record}.id}}.to_xml }\n"
-        code << "end\n"      
+        code << "  format.json { render :json=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_json }\n"
+        code << "  format.yaml { render :yaml=>#{foreign_records}.collect{|#{foreign_record}| {'label'=>#{item_label(foreign_record)}, 'id'=>#{foreign_record}.id}}.to_yaml }\n"
+        code << "  format.xml { render :xml=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_xml }\n"
+        code << "end\n"
+        list = code.split("\n"); list.each_index{|x| puts((x+1).to_s.rjust(4)+": "+list[x])}
         return code
       end
 
 
-      def controller_action(name, options={})
-        code  = "def #{action}\n"
-        code << Generator::Base.generate_controller_code(options).strip.gsub(/^/, '  ')+"\n"
+      def controller_action()
+        code  = "def #{@action_name}\n"
+        code << self.controller_code.strip.gsub(/^/, '  ')+"\n"
         code << "end\n"
         return code
       end
 
 
       def view_code()
-        code  = "def search_columns_for_#{@action_name}_in_#{@controller.controller_name}\n"
-        code << "  return #{@columns.inspect}\n"
+        record = 'record'
+        code  = "def item_label_for_#{@action_name}_in_#{@controller.controller_name}(#{record})\n"
+        code << "  return #{item_label(record)}\n"
         code << "end\n"
         return code
       end
+
+      private
+
+      def item_label(record, options={})
+        return "::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{record}.#{c.name}"}.join(', ')+", :default=>'"+@columns.collect{|c| "%{#{c.interpolation_key}}"}.join(', ')+"')"
+      end
+
 
     end
 

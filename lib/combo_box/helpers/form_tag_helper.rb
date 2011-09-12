@@ -55,12 +55,31 @@ module ComboBox
         return html.html_safe
       end
 
+      # Returns a text field which has the same behavior of +select+ but  with a search 
+      # action which permits to find easily in very long lists.
+      #
+      # @param [Symbol] name Name of the field
+      # @param [Symbol,String,Hash] choices 
+      #   Name of data source like specified in `search_for` or a specific URL 
+      #   in its String form (like `"orders#search_for"`) or in its Hash form
+      # @param [Hash] options Options to build the control
+      # @param [Hash] html_options Extra-attributes to add to the tags
+      #
+      # @option options [String] label Default label to display
+      #
+      # @return [String] HTML code of the tags
       def combo_box_tag(name, choices = nil, options={}, html_options = {})
-        label = options.delete(:label)||columns
-        label = [label] unless label.is_a? Array
+        if choices.nil? or choices == controller_name.to_sym
+          choices = {:action=>"search_for"}
+        elsif choices.is_a?(Symbol)
+          choices = {:action=>"search_for_#{choices}"}
+        elsif choices.is_a?(String)
+          action = choices.split(/\#+/)
+          choices = {:action=>"search_for_#{action[1]}", :controller=>action[0]}
+        end
         html  = ""
-        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>name, :size=>html_options.delete(:size)||32)
-        html << hidden_field_tag(name, html_options)
+        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>name, :size=>html_options.delete(:size)||32, :value=>options.delete(:label))
+        html << hidden_field_tag(name, html_options.delete(:value), html_options)
         return html.html_safe
       end
 
