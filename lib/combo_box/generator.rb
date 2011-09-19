@@ -135,7 +135,8 @@ module ComboBox
         # order = ", :order=>"+@columns.collect{|column| "#{column[0]} ASC"}.join(', ').inspect
         # limit = ", :limit=>"+(@options[:limit]||80).to_s
         joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).include(#{@options[:joins].inspect})" : ""
-        order = ".order("+@columns.collect{|c| "#{c.sql_name} ASC"}.join(', ').inspect+")"
+        
+        order = @options[:order] ? ".order(#{@options[:order].inspect})" : ".order("+@columns.collect{|c| "#{c.sql_name} ASC"}.join(', ').inspect+")"
         limit = ".limit(#{@options[:limit]||80})"
 
         partial = @options[:partial]
@@ -194,6 +195,21 @@ module ComboBox
         return "::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{c.value_code(record)}"}.join(', ')+", :default=>'"+@columns.collect{|c| "%{#{c.interpolation_key}}"}.join(', ')+"')"
       end
 
+      def sanitize_conditions(value)
+        if value.is_a? Array
+          if value.size == 1 and value[0].is_a? String
+            value[0].to_s
+          else
+            value.inspect
+          end
+        elsif value.is_a? String
+          '"'+value.gsub('"','\"')+'"'
+        elsif [Date, DateTime].include? value.class
+          '"'+value.to_formatted_s(:db)+'"'
+        else
+          value.to_s
+        end
+      end
 
     end
 

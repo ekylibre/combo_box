@@ -10,6 +10,8 @@ module ComboBox
 
       # Generates a default action which is the resource for a combo_box.
       # It generates an helper which takes in account selected columns for displaying.
+      # The label used to display items is based on the used columns. These columns can be
+      # used with I18n. The key used is: +views.combo_boxes.<controller>.<action>+
       # 
       # @macro [new] options_details
       #   @param [Hash] options Options to build controller action
