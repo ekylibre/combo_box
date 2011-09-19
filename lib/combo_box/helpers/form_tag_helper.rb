@@ -2,22 +2,6 @@ module ComboBox
   module Helpers
     module FormTagHelper
 
-      
-      # Returns the list of columns to use in the combo_box for displaying
-      # the current item
-      # @param [String, Symbol] action_name Name of the 'search_for' action
-      # @param [String, Symbol] controller_name Name of the controller of the 'search_for' action
-      #
-      # @return [Array] Lists of symbols corresponding to the 'search_for' columns's names
-      def search_columns_for(action, controller=nil)
-        method_name = "search_columns_for_#{action}_in_#{controller}"
-        if self.respond_to?(method_name)
-          return self.send(method_name)
-        else
-          return nil
-        end
-      end
-
 
       # Returns a text field which has the same behavior of +select+ but  with a search 
       # action which permits to find easily in very long lists...
@@ -41,9 +25,15 @@ module ComboBox
           action = choices.split(/\#+/)
           choices = {:action=>action[1], :controller=>action[0]}
         end
-        choices[:controller] ||= controller.controller_name
+        choices[:controller] ||= options[:controller]||controller.controller_name
+        unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{choices[:action]}_in_#{choices[:controller]}".to_sym)
+          "#{choices[:controller].to_s.classify.pluralize}Controller".constantize
+          unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{choices[:action]}_in_#{choices[:controller]}".to_sym)
+            raise Exception.new("It seems there is no search_for declaration corresponding to #{choices[:action]}")
+          end
+        end
         html  = ""
-        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>"#{object_name}_#{method}", :value=>send("item_label_for_#{choices[:action]}_in_#{choices[:controller]}", object.send(method)), :size=>html_options.delete(:size)||32)
+        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>"#{object_name}_#{method}", :value=>ComboBox::CompiledLabels.send("item_label_for_#{choices[:action]}_in_#{choices[:controller]}", object.send(method)), :size=>html_options.delete(:size)||32)
         html << hidden_field(object_name, method, html_options)
         return html.html_safe
       end

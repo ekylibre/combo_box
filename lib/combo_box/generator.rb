@@ -172,9 +172,9 @@ module ComboBox
       end
 
 
-      def view_code()
+      def item_label_code()
         record = 'record'
-        code  = "def item_label_for_#{@action_name}_in_#{@controller.controller_name}(#{record})\n"
+        code  = "def self.item_label_for_#{@action_name}_in_#{@controller.controller_name}(#{record})\n"
         code << "  if #{record}.is_a? #{@model.name}\n"
         code << "    return #{item_label(record)}\n"
         code << "  else\n"
