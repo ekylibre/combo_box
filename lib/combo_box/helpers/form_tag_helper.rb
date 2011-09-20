@@ -25,15 +25,17 @@ module ComboBox
           action = choices.split(/\#+/)
           choices = {:action=>action[1], :controller=>action[0]}
         end
-        choices[:controller] ||= options[:controller]||controller.controller_name
+        choices[:controller] ||= options.delete(:controller) || controller.controller_name
         unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{choices[:action]}_in_#{choices[:controller]}".to_sym)
-          "#{choices[:controller].to_s.classify.pluralize}Controller".constantize
+          needed_controller = "#{choices[:controller].to_s.classify.pluralize}Controller"
+          needed_controller.constantize
           unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{choices[:action]}_in_#{choices[:controller]}".to_sym)
-            raise Exception.new("It seems there is no search_for declaration corresponding to #{choices[:action]}")
+            raise Exception.new("It seems there is no search_for declaration corresponding to #{choices[:action]} in #{needed_controller}")
           end
         end
+        html_options[:id] ||= "#{object_name}_#{method}"
         html  = ""
-        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>"#{object_name}_#{method}", :value=>ComboBox::CompiledLabels.send("item_label_for_#{choices[:action]}_in_#{choices[:controller]}", object.send(method)), :size=>html_options.delete(:size)||32)
+        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>html_options[:id], :value=>ComboBox::CompiledLabels.send("item_label_for_#{choices[:action]}_in_#{choices[:controller]}", object.send(method.to_s.gsub(/_id$/,''))), :size=>html_options.delete(:size)||32)
         html << hidden_field(object_name, method, html_options)
         return html.html_safe
       end
@@ -60,9 +62,10 @@ module ComboBox
           action = choices.split(/\#+/)
           choices = {:action=>action[1], :controller=>action[0]}
         end
-        choices[:controller] ||= controller.controller_name
+        choices[:controller] ||= options.delete(:controller) || controller.controller_name
+        html_options[:id] ||= name.to_s.gsub(/\W+/, '_').gsub(/(^_+|_+$)/, '')
         html  = ""
-        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>name, :size=>html_options.delete(:size)||32, :value=>options.delete(:label))
+        html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>html_options[:id], :size=>html_options.delete(:size)||32, :value=>options.delete(:label))
         html << hidden_field_tag(name, html_options.delete(:value), html_options)
         return html.html_safe
       end
