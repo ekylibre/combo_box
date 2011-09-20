@@ -13,12 +13,12 @@ module ComboBox
         @name = name.to_s
         @filter = options.delete(:filter) || "%X%"
         @interpolation_key = options.delete(:interpolation_key) || @name.gsub(/\W/, '_')
-        mdl = @model
+        klass = @model
         @through = (options.delete(:through) || []).collect do |reflection|
-          unless model.reflections[reflection.to_sym]
-            raise Exception.new("Model #{model.name} has no reflections #{reflection.inspect}")
+          unless klass.reflections[reflection.to_sym]
+            raise Exception.new("Model #{klass.name} has no reflections #{reflection.inspect}")
           end
-          model = model.reflections[reflection.to_sym].class_name.constantize
+          klass = klass.reflections[reflection.to_sym].class_name.constantize
           reflection.to_sym
         end
         @column = foreign_model.columns_hash[@name]
@@ -115,26 +115,31 @@ module ComboBox
         
         code  = ""
         code << "search, conditions = params[:term], [#{query.join(' AND ').inspect+parameters}]\n"
-        code << "words = search.to_s.mb_chars.downcase.strip.normalize.split(/[\\s\\,]+/)\n"
-        code << "if words.size > 0\n"
-        code << "  conditions[0] << '#{' AND ' if query.size>0}('\n"
-        code << "  words.each_index do |index|\n"
-        code << "    word = words[index].to_s\n"
-        code << "    conditions[0] << ') AND (' if index > 0\n"
+        code << "if params[:id].to_i > 0\n"
+        code << "  conditions[0] << '#{' AND ' if query.size>0}#{@model.table_name}.id = ?'\n"
+        code << "  conditions << params[:id].to_i\n"
+        code << "else\n"
+        code << "  words = search.to_s.mb_chars.downcase.strip.normalize.split(/[\\s\\,]+/)\n"
+        code << "  if words.size > 0\n"
+        code << "    conditions[0] << '#{' AND ' if query.size>0}('\n"
+        code << "    words.each_index do |index|\n"
+        code << "      word = words[index].to_s\n"
+        code << "      conditions[0] << ') AND (' if index > 0\n"
         if ActiveRecord::Base.connection.adapter_name == "MySQL"
-          code << "    conditions[0] << "+@columns.collect{|column| "LOWER(CAST(#{column.sql_name} AS CHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
+          code << "      conditions[0] << "+@columns.collect{|column| "LOWER(CAST(#{column.sql_name} AS CHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
         else
-          code << "    conditions[0] << "+@columns.collect{|column| "LOWER(CAST(#{column.sql_name} AS VARCHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
+          code << "      conditions[0] << "+@columns.collect{|column| "LOWER(CAST(#{column.sql_name} AS VARCHAR)) LIKE ?"}.join(' OR ').inspect+"\n"
         end
-        code << "    conditions += ["+@columns.collect{|column| column.filter.inspect.gsub('X', '"+word+"').gsub(/(^\"\"\+|\+\"\"\+|\+\"\")/, '')}.join(", ")+"]\n"
+        code << "      conditions += ["+@columns.collect{|column| column.filter.inspect.gsub('X', '"+word+"').gsub(/(^\"\"\+|\+\"\"\+|\+\"\")/, '')}.join(", ")+"]\n"
+        code << "    end\n"
+        code << "    conditions[0] << ')'\n"
         code << "  end\n"
-        code << "  conditions[0] << ')'\n"
         code << "end\n"
 
         # joins = @options[:joins] ? ", :joins=>"+@options[:joins].inspect : ""
         # order = ", :order=>"+@columns.collect{|column| "#{column[0]} ASC"}.join(', ').inspect
         # limit = ", :limit=>"+(@options[:limit]||80).to_s
-        joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).include(#{@options[:joins].inspect})" : ""
+        joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).includes(#{@options[:joins].inspect})" : ""
         
         order = @options[:order] ? ".order(#{@options[:order].inspect})" : ".order("+@columns.collect{|c| "#{c.sql_name} ASC"}.join(', ').inspect+")"
         limit = ".limit(#{@options[:limit]||80})"
@@ -179,11 +184,7 @@ module ComboBox
         code << "  if #{record}.is_a? #{@model.name}\n"
         code << "    return #{item_label(record)}\n"
         code << "  else\n"
-        if Rails.env == "development"
-          code << "    return '[UnfoundRecord]'\n"
-        else
-          code << "    return ''\n"
-        end
+        code << "    return ''\n"
         code << "  end\n"
         code << "end\n"
         return code
