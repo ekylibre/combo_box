@@ -57,7 +57,11 @@ module ComboBox
         if choices.nil? or choices == controller_name.to_sym
           choices = {:action=>"search_for"}
         elsif choices.is_a?(Symbol)
-          choices = {:action=>"search_for_#{choices}"}
+          choices = {:action=>"search_for_#{choices}", :controller=>(options.delete(:controller) || controller.controller_name)}
+          if object = options.delete(:value)
+            options[:label] = item_label(object, choices[:action], choices[:controller])
+            html_options[:value] = object.id
+          end
         elsif choices.is_a?(String)
           action = choices.split(/\#+/)
           choices = {:action=>action[1], :controller=>action[0]}
@@ -68,6 +72,21 @@ module ComboBox
         html << tag(:input, :type=>:text, "data-combo-box"=>url_for(choices.merge(:format=>:json)), "data-value-container"=>html_options[:id], :size=>html_options.delete(:size)||32, :value=>options.delete(:label))
         html << hidden_field_tag(name, html_options.delete(:value), html_options)
         return html.html_safe
+      end
+
+
+      private
+
+      def item_label(record, item_action, item_controller=nil)
+        item_controller ||= controller.controller_name
+        unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{item_action}_in_#{item_controller}".to_sym)
+          needed_controller = "#{item_controller.to_s.classify.pluralize}Controller"
+          needed_controller.constantize
+          unless ComboBox::CompiledLabels.methods.include?("item_label_for_#{item_action}_in_#{item_controller}".to_sym)
+            raise Exception.new("It seems there is no search_for declaration corresponding to #{item_action} in #{needed_controller}")
+          end
+        end
+        return ComboBox::CompiledLabels.send("item_label_for_#{item_action}_in_#{item_controller}", record)
       end
 
     end
