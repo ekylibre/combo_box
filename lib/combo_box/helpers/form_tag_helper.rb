@@ -54,7 +54,7 @@ module ComboBox
       #
       # @return [String] HTML code of the tags
       def combo_box_tag(name, choices = nil, options={}, html_options = {})
-        if choices.nil? or choices == controller_name.to_sym
+        if choices.nil? or (choices == controller_name.to_sym and not options.has_key?(:controller))
           choices = {:action=>"search_for"}
         elsif choices.is_a?(Symbol)
           choices = {:action=>"search_for_#{choices}", :controller=>(options.delete(:controller) || controller.controller_name)}
