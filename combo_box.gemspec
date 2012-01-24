@@ -4,14 +4,14 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{combo_box}
-  s.version = "0.0.5"
+  s.name = "combo_box"
+  s.version = "0.0.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = [%q{Brice Texier}]
-  s.date = %q{2011-09-27}
-  s.description = %q{Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections.}
-  s.email = %q{brice.texier@ekylibre.org}
+  s.authors = ["Brice Texier"]
+  s.date = "2012-01-24"
+  s.description = "Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections."
+  s.email = "brice.texier@ekylibre.org"
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.rdoc"
@@ -31,11 +31,11 @@ Gem::Specification.new do |s|
     "lib/combo_box/helpers/form_tag_helper.rb",
     "lib/combo_box/railtie.rb"
   ]
-  s.homepage = %q{http://github.com/burisu/combo_box}
-  s.licenses = [%q{MIT}]
-  s.require_paths = [%q{lib}]
-  s.rubygems_version = %q{1.8.6}
-  s.summary = %q{Adds the combo_box control in Rails 3 based on jQuery UI}
+  s.homepage = "http://github.com/burisu/combo_box"
+  s.licenses = ["MIT"]
+  s.require_paths = ["lib"]
+  s.rubygems_version = "1.8.11"
+  s.summary = "Adds the combo_box control in Rails 3 based on jQuery UI"
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
@@ -44,18 +44,15 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<rails>, ["~> 3"])
       s.add_runtime_dependency(%q<jquery-rails>, [">= 0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.4"])
-      s.add_development_dependency(%q<rcov>, [">= 0"])
     else
       s.add_dependency(%q<rails>, ["~> 3"])
       s.add_dependency(%q<jquery-rails>, [">= 0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
-      s.add_dependency(%q<rcov>, [">= 0"])
     end
   else
     s.add_dependency(%q<rails>, ["~> 3"])
     s.add_dependency(%q<jquery-rails>, [">= 0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
-    s.add_dependency(%q<rcov>, [">= 0"])
   end
 end
 
