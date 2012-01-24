@@ -9,7 +9,6 @@ module ComboBox
       # @@count = 0
 
       def initialize(model, name, options={})
-        return unless model.table_exists?
         @model = model
         @name = name.to_s
         @filter = options.delete(:filter) || "%X%"
@@ -21,7 +20,7 @@ module ComboBox
           end
           klass = klass.reflections[reflection.to_sym].class_name.constantize
           reflection.to_sym
-        end
+        end || []
         @column = foreign_model.columns_hash[@name]
       end
 

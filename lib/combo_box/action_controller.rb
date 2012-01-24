@@ -76,6 +76,7 @@ module ComboBox
         if [String, Symbol].include?(model.class)
           model = model.to_s.classify.constantize             
         end
+        return unless model.table_exists?
         generator = Generator::Base.new(self, action_name, model, options)
         class_eval(generator.controller_action, "#{__FILE__}:#{__LINE__}")
         # ActionView::Base.send(:class_eval, generator.view_code, "#{__FILE__}:#{__LINE__}")
