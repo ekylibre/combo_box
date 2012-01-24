@@ -9,6 +9,7 @@ module ComboBox
       # @@count = 0
 
       def initialize(model, name, options={})
+        return unless model.table_exists?
         @model = model
         @name = name.to_s
         @filter = options.delete(:filter) || "%X%"
