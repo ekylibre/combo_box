@@ -12,6 +12,7 @@ module ComboBox
         @model = model
         @name = name.to_s
         @filter = options.delete(:filter) || "%X%"
+        @code = options.delete(:code)
         @interpolation_key = options.delete(:interpolation_key) || @name.gsub(/\W/, '_')
         klass = @model
         @through = (options.delete(:through) || []).collect do |reflection|
@@ -29,16 +30,20 @@ module ComboBox
       end
 
       def value_code(record='record')
-        code  = ""
-        value = "#{record}#{'.'+@through.join('.') unless @through.empty?}.#{name}"
+        code  = "("
+        value = "(#{record}#{'.'+@through.join('.') unless @through.empty?}.#{name})"
         @through.each_index do |i|
           code << "#{record}.#{@through[0..i].join('.')}.nil? ? '' : "
         end
-        if [:date, :datetime, :timestamp].include? self.type
-          code = "(#{code}#{value}.nil? ? '' : ::I18n.localize(#{value}))"
-        else
-          code = "(#{code}#{value}).to_s"
-        end
+        code << if @code
+                  @code.gsub(/RECORD/, record).gsub(/DATUM/, value)
+                elsif[:date, :datetime, :timestamp].include? self.type
+                  "(#{value}.nil? ? '' : ::I18n.localize(#{value}))"
+                else
+                  value
+                end
+        code << ")"
+        code << ".to_s" unless name.to_s == "count"
         return code
       end
 
@@ -187,13 +192,14 @@ module ComboBox
         code << "    return ''\n"
         code << "  end\n"
         code << "end\n"
+        puts code
         return code
       end
 
       private
 
       def item_label(record, options={})
-        return "::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{c.value_code(record)}"}.join(', ')+", :default=>'"+@columns.collect{|c| "%{#{c.interpolation_key}}"}.join(', ')+"')"
+        return "::I18n.translate('views.combo_boxes.#{@controller.controller_name}.#{@action_name}', "+@columns.collect{|c| ":#{c.interpolation_key}=>#{c.value_code(record)}"}.join(', ')+", :default=>[:'labels.#{@action_name}', '"+@columns.collect{|c| "%{#{c.interpolation_key}}"}.join(', ')+"']).gsub(/%s/, \"\\u{00A0}\")"
       end
 
       def sanitize_conditions(value)
