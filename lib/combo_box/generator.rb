@@ -192,7 +192,7 @@ module ComboBox
         code << "    return ''\n"
         code << "  end\n"
         code << "end\n"
-        puts code
+        # puts code
         return code
       end
 
