@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "combo_box"
-  s.version = "0.0.7"
+  s.version = "0.0.8"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brice Texier"]
-  s.date = "2012-01-24"
+  s.date = "2012-03-28"
   s.description = "Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections."
   s.email = "brice.texier@ekylibre.org"
   s.extra_rdoc_files = [
