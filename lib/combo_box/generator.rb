@@ -98,11 +98,13 @@ module ComboBox
 
         query = []
         parameters = ''
+        initial_conditions = ""
         if @options[:conditions].is_a? Hash
           @options[:conditions].each do |key, value| 
             query << (key.is_a?(Symbol) ? @model.table_name+"."+key.to_s : key.to_s)+'=?'
             parameters += ', ' + sanitize_conditions(value)
           end
+          initial_conditions = query.join(' AND ').inspect+parameters
         elsif @options[:conditions].is_a? Array
           conditions = @options[:conditions]
           if conditions[0].is_a?(String)  # SQL
@@ -111,22 +113,22 @@ module ComboBox
           else
             raise Exception.new("First element of an Array can only be String or Symbol.")
           end
+          initial_conditions = query.join(' AND ').inspect+parameters
+        elsif @options[:conditions].is_a? String
+          initial_conditions = "("+@options[:conditions].gsub(/\s*\n\s*/, ';')+")"
+        else !@options[:conditions].nil?
+          raise ArgumentError.new("Option :conditions can be a Hash, an Array or String")
         end
         
-        # select = "#{@model.table_name}.id AS id"
-        # for c in @columns
-        #   select << ", #{c.sql_name} AS #{c.short_name}"
-        # end
-        
         code  = ""
-        code << "search, conditions = params[:term], [#{query.join(' AND ').inspect+parameters}]\n"
+        code << "search, conditions = params[:term], []\n"
         code << "if params[:id].to_i > 0\n"
-        code << "  conditions[0] << '#{' AND ' if query.size>0}#{@model.table_name}.id = ?'\n"
+        code << "  conditions[0] = '#{@model.table_name}.id = ?'\n"
         code << "  conditions << params[:id].to_i\n"
         code << "else\n"
         code << "  words = search.to_s.mb_chars.downcase.strip.normalize.split(/[\\s\\,]+/)\n"
         code << "  if words.size > 0\n"
-        code << "    conditions[0] << '#{' AND ' if query.size>0}('\n"
+        code << "    conditions[0] = '('\n"
         code << "    words.each_index do |index|\n"
         code << "      word = words[index].to_s\n"
         code << "      conditions[0] << ') AND (' if index > 0\n"
@@ -141,20 +143,14 @@ module ComboBox
         code << "  end\n"
         code << "end\n"
 
-        # joins = @options[:joins] ? ", :joins=>"+@options[:joins].inspect : ""
-        # order = ", :order=>"+@columns.collect{|column| "#{column[0]} ASC"}.join(', ').inspect
-        # limit = ", :limit=>"+(@options[:limit]||80).to_s
-        joins = @options[:joins] ? ".joins(#{@options[:joins].inspect}).includes(#{@options[:joins].inspect})" : ""
-        
-        order = @options[:order] ? ".order(#{@options[:order].inspect})" : ".order("+@columns.collect{|c| "#{c.sql_name} ASC"}.join(', ').inspect+")"
+        joins = (@options[:joins] ? ".joins(#{@options[:joins].inspect}).includes(#{@options[:joins].inspect})" : "")
+        order = (@options[:order] ? ".order(#{@options[:order].inspect})" : ".order("+@columns.collect{|c| "#{c.sql_name} ASC"}.join(', ').inspect+")")
         limit = ".limit(#{@options[:limit]||80})"
 
         partial = @options[:partial]
 
         html  = "<ul><% for #{foreign_record} in #{foreign_records} -%><li id='<%=#{foreign_record}.id-%>'>" 
         html << "<% content = item_label_for_#{@action_name}_in_#{@controller.controller_name}(#{foreign_record})-%>"
-        # html << "<%content="+#{foreign_record}.#{field.item_label}+" -%>"
-        # html << "<%content="+@columns.collect{|column| "#{foreign_record}['#{column[2]}'].to_s"}.join('+", "+')+" -%>"
         if partial
           html << "<%=render(:partial=>#{partial.inspect}, :locals =>{:#{foreign_record}=>#{foreign_record}, :content=>content, :search=>search})-%>"
         else
@@ -162,14 +158,17 @@ module ComboBox
         end
         html << '</li><%end-%></ul>'
 
-        code << "#{foreign_records} = #{@model.name}.where(conditions)"+joins+order+limit+"\n"
+        code << "#{foreign_records} = #{@model.name}"
+        code << ".where(#{initial_conditions})" unless initial_conditions.blank?
+        code << ".where(conditions)"+joins+order+limit+"\n"
         # Render HTML is old Style
         code << "respond_to do |format|\n"
         code << "  format.html { render :inline=>#{html.inspect}, :locals=>{:#{foreign_records}=>#{foreign_records}, :search=>search} }\n"
         code << "  format.json { render :json=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_json }\n"
         code << "  format.yaml { render :yaml=>#{foreign_records}.collect{|#{foreign_record}| {'label'=>#{item_label(foreign_record)}, 'id'=>#{foreign_record}.id}}.to_yaml }\n"
-        code << "  format.xml { render :xml=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_xml }\n"
+        code << "  format.xml  { render :xml=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_xml }\n"
         code << "end\n"
+        puts code
         return code
       end
 
