@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "combo_box"
-  s.version = "0.0.8"
+  s.version = "0.0.9"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Brice Texier"]
-  s.date = "2012-03-28"
+  s.date = "2012-03-29"
   s.description = "Adds helpers for Rails views and controller in order to manage 'dynamic select'. It uses jQuery UI as support for inobtrusive use in forms. It's not the classic Autocompleter, its use is limited to belongs_to reflections."
   s.email = "brice.texier@ekylibre.org"
   s.extra_rdoc_files = [
@@ -34,7 +34,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/burisu/combo_box"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.11"
+  s.rubygems_version = "1.8.10"
   s.summary = "Adds the combo_box control in Rails 3 based on jQuery UI"
 
   if s.respond_to? :specification_version then
