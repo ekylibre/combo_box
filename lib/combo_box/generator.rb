@@ -168,7 +168,6 @@ module ComboBox
         code << "  format.yaml { render :yaml=>#{foreign_records}.collect{|#{foreign_record}| {'label'=>#{item_label(foreign_record)}, 'id'=>#{foreign_record}.id}}.to_yaml }\n"
         code << "  format.xml  { render :xml=>#{foreign_records}.collect{|#{foreign_record}| {:label=>#{item_label(foreign_record)}, :id=>#{foreign_record}.id}}.to_xml }\n"
         code << "end\n"
-        puts code
         return code
       end
 
