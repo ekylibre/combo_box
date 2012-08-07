@@ -16,7 +16,6 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/burisu/combo_box"
   s.license = "MIT"
   s.require_path = "lib"
-
   add_runtime_dependency = (s.respond_to?(:add_runtime_dependency) ? :add_runtime_dependency : :add_dependency)
   s.send(add_runtime_dependency, "rails", [">= 3.1"])
   s.send(add_runtime_dependency, "jquery-rails", [">= 0"])

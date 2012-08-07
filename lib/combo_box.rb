@@ -1,5 +1,5 @@
-require 'combo_box/railtie' if defined?(::Rails)
-require 'combo_box/engine' if defined?(::Rails)
+require 'combo_box/rails/railtie' if defined?(::Rails)
+require 'combo_box/rails/engine' if defined?(::Rails)
 
 # :include: ../README.rdoc
 module ComboBox
