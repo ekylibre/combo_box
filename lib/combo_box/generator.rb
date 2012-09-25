@@ -116,8 +116,8 @@ module ComboBox
           initial_conditions = query.join(' AND ').inspect+parameters
         elsif @options[:conditions].is_a? String
           initial_conditions = "("+@options[:conditions].gsub(/\s*\n\s*/, ';')+")"
-        else !@options[:conditions].nil?
-          raise ArgumentError.new("Option :conditions can be a Hash, an Array or String")
+        elsif !@options[:conditions].blank?
+          raise ArgumentError.new("Option :conditions can be a Hash, an Array or String (not #{@options[:conditions].class}:#{@options[:conditions].inspect})")
         end
         
         code  = ""
