@@ -22,7 +22,7 @@ Nothing to install. With the asset pipeline, there is no need to run generators 
 
 And for javascripts:
   # app/assets/javascripts/application.js
-  *= require combo_box
+  //= require combo_box
 
 == Usage
 
